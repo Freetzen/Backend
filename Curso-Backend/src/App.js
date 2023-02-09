@@ -1,34 +1,40 @@
 import express from 'express'
-import ProductManager from "./ProductManager.js";
+import ProductManager from "./controllers/ProductManager.js";
+import { __dirname } from './path.js';
 
 const app = express()
-const PORT = 4000
-const manager = new ProductManager("./src/database.json");
+const PORT = 8080
+const productManager  = new ProductManager("./src/models/DataBase.json");
 
+app.use(express.urlencoded({extended:true}));
+app.use(express.json());
 
-app.use(express.urlencoded({extended:true}))
+app.get('/', async (req, res) => { 
+    const { limit } = req.query; 
+    const productos = await productManager.getProducts()
+    res.send(productos)
+})
+  
+app.get('/:id', async (req, res) => { 
+    const producto = await productManager.getProductById(req.params.id)
+    res.send(JSON.stringify(producto))
+})
+  
+app.post('/', async (req, res) => { 
+    let mensaje = await productManager.addProduct(req.body)
+    res.send(mensaje)
+})
+  
+app.delete('/:id', async (req, res) => {
+    let mensaje = await productManager.deleteProduct(req.params.id) 
+    res.send(mensaje)
+})
+  
+app.put('/:id', async (req, res) => { 
+    let mensaje = await productManager.updateProduct(req.params.id, req.body)
+    res.send(mensaje)
+})
 
-app.get('/', (req,res)=>{
-    res.send("Desafío 3 con Servidor Express <3")
-});
-
-app.get("/products", async (req, res) => {
-    const products = await manager.getProducts();
-    let { limit } = req.query;
-    let data;
-    if (!limit) {
-        data = products;
-    } else {
-        data = products.slice(0, parseInt(limit));
-    }
-    res.send(data);
-});
-
-app.get("/products/:pid", async (req, res) => {
-    const product = await manager.getProductById(parseInt(req.params.pid));
-    product === null ? res.send("No se encontró el producto") : res.send(product);
-});
-
-app.listen(PORT, ()=>{
-    console.log(`Server en linea en puerto ${PORT}`)
-}) ;
+app.listen(PORT, () => {
+    console.log(`Server on port ${PORT}`)
+})
