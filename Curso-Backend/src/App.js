@@ -1,40 +1,39 @@
 import express from 'express'
-import ProductManager from "./controllers/ProductManager.js";
+import routerProduct from './routes/products.routes.js';
+import cartProducts from './routes/carts.routes.js';
 import { __dirname } from './path.js';
+import multer from 'multer'
 
+
+//MULTER
+//const upload = multer({dest:'src/public/images/imgUsers'}) //Destino para alojar imágenes cargadas por el usuario. (FORMA BÁSICA)
+const storage = multer.diskStorage({ //multer.diskStorage, es un método para definir como guardar las imágenes
+    destination: (req,file,cb)=>{ //Primer atributo es destination.
+        cb(null,'src/public/images/imgUsers') //cb es una función para manejar la información de multer (callback)
+    },
+    filename: (req,file,cb)=>{ //filename es el atributo para decirle como guardamos la imagen, en este caso, con el nombre original
+        cb(null, `${file.originalname}`)
+    }
+})
+
+const upload = multer({storage:storage}) //Constante  upload y enviamos por parametro la constante storage
 const app = express()
 const PORT = 8080
-const productManager  = new ProductManager("./src/models/DataBase.json");
 
-app.use(express.urlencoded({extended:true}));
-app.use(express.json());
+//Middleware
+app.use(express.json()); //Permite trabajar con JSON
+app.use(express.urlencoded({extended:true})); //Permite trabajar con url extendidos
 
-app.get('/', async (req, res) => { 
-    const { limit } = req.query; 
-    const productos = await productManager.getProducts()
-    res.send(productos)
-})
-  
-app.get('/:id', async (req, res) => { 
-    const producto = await productManager.getProductById(req.params.id)
-    res.send(JSON.stringify(producto))
-})
-  
-app.post('/', async (req, res) => { 
-    let mensaje = await productManager.addProduct(req.body)
-    res.send(mensaje)
-})
-  
-app.delete('/:id', async (req, res) => {
-    let mensaje = await productManager.deleteProduct(req.params.id) 
-    res.send(mensaje)
-})
-  
-app.put('/:id', async (req, res) => { 
-    let mensaje = await productManager.updateProduct(req.params.id, req.body)
-    res.send(mensaje)
+app.use('/static', express.static(__dirname + '/public')) //Definir carpeta publica.
+app.use('/api/products', routerProduct) //Crear ruta para productos, llamando a routerProduct
+app.use('/api/cart', cartProducts)
+
+app.post('/upload',upload.single('product'),(req,res)=>{ //Ruta para cargar un solo archivo con .single
+    console.log(req.body)
+    console.log(req.file) //Ver contenido (información) de la imágen
+    res.send('imagen cargada')
 })
 
-app.listen(PORT, () => {
+app.listen(PORT, () => { 
     console.log(`Server on port ${PORT}`)
 })

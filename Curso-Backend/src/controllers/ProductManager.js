@@ -1,10 +1,17 @@
-import {promises as fs} from "fs";
-const ruta = "./DataBase.json";
+import {promises as fs} from "fs"; 
+const ruta = "../models/products.json"; 
 
-class ProductManager {
-    constructor(path) {
-        this.path = path;
-        this.id = ProductManager.addId()
+
+class Product {
+    constructor(title, description, price, status, thumbnail, code, stock) {
+        this.title = title
+        this.description = description
+        this.price = price
+        this.status = status
+        this.thumbnail = thumbnail
+        this.code = code
+        this.stock = stock
+        this.id = Product.addId()
     }
 
     static addId(){
@@ -15,45 +22,67 @@ class ProductManager {
         }
         return this.idIncrement
     }
+}
+class ProductManager { 
+    constructor(path) { 
+        this.path = path; 
+    }
 
-    addProduct = async (producto) => {
-        const prods = JSON.parse(await fs.readFile(this.path, 'utf-8'))
-        producto.id = ProductManager.addId()
-        prods.push(producto)
-        await fs.writeFile(this.path, JSON.stringify(prods))
+    addId = async () => { 
+        if (this.idIncrement) {
+            this.idIncrement++
+        } else {
+            this.idIncrement = 1
+        }
+        return this.idIncrement
+    }
+
+    addProduct = async ({title, description, price, status, thumbnail, code, stock}) => {
+        const producto = {title, description, price, status, thumbnail, code, stock} //Desestructuración
+        const prods = JSON.parse(await fs.readFile(this.path, 'utf-8')) //Lee el archivo JSON con los productos existentes y lo parsea a un objeto de JavaScript.
+        if (prods.some((elem) => elem.code === producto.code)) { //Verifica si el código del nuevo producto ya existe en la lista de productos. Retornando True o False
+            return `El código ${producto.code} ya existe, no se puede crear el producto`;
+        } else{ //Si el código no existe, se asigna un nuevo ID al producto y se agrega a la lista de productos.
+            let newID;
+            //Operador ternario para asignar un nuevo id al producto
+            !prods.length ? (newID = 1) : (newID = prods[prods.length - 1].id + 1) //si prods.length es igual a 0, newID se establece en 1. De lo contrario, se establece en el ID del último producto en la lista sumando 1.
+            prods.push({ ...producto, 'id': newID }) //Agrega el objeto "producto" a la lista de productos "prods", mediante spread operator(copiando los datos)
+        await fs.writeFile(this.path, JSON.stringify(prods)) //Escribimos el producto nuevo y lo pasamos a de objeto a JSON
         return "Producto creado"
+        }
     }
 
     getProducts = async () => {
-        const read = await fs.readFile(this.path, 'utf-8')
-        const data = JSON.parse(read)
-        if (data.length != 0) {
+        const read = await fs.readFile(this.path, 'utf-8') //Leemos el archivo JSON
+        const data = JSON.parse(read) //Pasamos de JSON a objeto JS
+        if (data.length != 0) { //Si la longitud es diferente a 0, muestra los productos en el array.
             return (data)
         } else {
-            return ("No se encuentran productos en el listado.")
+            return ("No se encuentran productos en el listado.") //Si no encuentra nada, retorna mensaje con error
         }
     }
 
     getProductById = async (id) => {
-        const read = await fs.readFile(this.path, 'utf-8');
-        const data = JSON.parse(read);
-        const findProduct = data.find((prod) => prod.id === id);
-        if (findProduct) {
+        const read = await fs.readFile(this.path, 'utf-8'); //Leemos el archivo JSON
+        const data = JSON.parse(read); //Paseamos el JSON y convertimos a objeto JS
+        const findProduct = data.find((prod) => prod.id === parseInt(id)); //Buscamos un producto en el arreglo que tenga una propiedad id igual al valor proporcionado en el argumento "id"
+        if (findProduct) { //Si findProduct es verdadero (se encontró el id), lo devuelve
             return (findProduct)
-        } else {
-            return ("Product Not found")
+        } else { //De lo contrario, retorna un mensaje de error
+            return ("Producto no encontrado")
         }
     }
 
-    async deleteProduct(id) {
+    deleteProduct = async (id) => {
         try {
-            const read = await fs.readFile(this.path, "utf-8");
-            const data = JSON.parse(read);
-            const index = data.findIndex((prod) => prod.id === id);
-            if (index !== -1) {
-                data.splice(index, 1);
-                await fs.writeFile(this.path, JSON.stringify(data), "utf-8");
-            } else {
+            const read = await fs.readFile(this.path, "utf-8"); //Leemos el archivo JSON
+            const data = JSON.parse(read); ////Paseamos el JSON y convertimos a objeto JS
+            const index = data.findIndex((prod) => prod.id === parseInt(id)); //.findIndex para buscar la posición del producto en el array.
+            if (index !== -1) { //Si es diferente a -1 (lo encontró) sigue con el código
+                data.splice(index, 1); //Método .splice(index(posición del producto) , 1(elimina ese producto))
+                await fs.writeFile(this.path, JSON.stringify(data), "utf-8"); //Escribe el JSON nuevamente y lo pasa a JSON
+                return "Producto eliminado con éxito!"
+            } else { //Si no lo encontró (devuelve -1) y mensaje de error
                 throw "ID " + id + " not found";
             }
         } catch (err) {
@@ -61,69 +90,40 @@ class ProductManager {
         }
     }
 
-    updateProduct = async (id, entry, value) => {
-            const read = await fs.readFile(this.path, "utf-8");
-            const data = JSON.parse(read);
-            const index = data.findIndex((product) => product.id === id);
-            if(!data[index][entry]){
-                return ("El producto no pudo ser actualizado.")
-            } else {
-                data[index][entry] = value;
-                await fs.writeFile(this.path, JSON.stringify(data, null, 2));
-                ("El producto se ha modificado de la siguiente manera:")
-                return (data[index]);
-            }
-            
+    updateProduct = async (id, {title, description, price, status, thumbnail, code, stock}) => {//Tomamos como argumentos el id del producto a actualizar y un objeto literal con los nuevos valores para los atributos del producto.
+        const prods = JSON.parse(await fs.readFile(this.path, 'utf-8')) //Pasamos de JSON a objeto JS y leemos
+        if(prods.some(prod => prod.id === parseInt(id))) { //.some() verificamos si existe un producto con el id especificado en el arreglo de productos.
+            let index = prods.findIndex(prod => prod.id === parseInt(id)) //Buscamos la posición del producto en el array con .findIndex()
+            prods[index].title = title 
+            prods[index].description = description
+            prods[index].price = price
+            prods[index].status = status                    //Actualizamos los atributos existentes por los valores ingresados
+            prods[index].thumbnail = thumbnail
+            prods[index].code = code
+            prods[index].stock = stock
+            await fs.writeFile(this.path, JSON.stringify(prods)) //Escribimos el archivo JSON con las modificaciones y pasamos de objeto JS a JSON
+            return "Producto actualizado"
+        } else { //Si no lo encuentra, devuelve error
+            return "Producto no encontrado"
+        }
     }
 }
 
+const manager = new ProductManager(ruta)
 
-//TESTING
-//Instanciamos productManager.
-const productManager = new ProductManager(ruta); 
+const product1 = new Product("Pubg", "acción", 600, true, ["src/public/images/games/p2.jpg"], "PB2", 20);
+const product2 = new Product("Counter Strike 2", "accion", 900, true, ["src/public/images/games/cs2.jpg"], "CS2", 180);
+const product3 = new Product("Resident Evil 8", "terror", 1000, true, ["src/public/images/games/re8.jpg"], "RE8", 100);
+const product4 = new Product("Destiny 3", "accion", 1400, true, ["src/public/images/games/destiny3.png"], "D3", 200);
 
-// Creamos productos.
-//const product1 = new Product("iPhone 11 Pro Max", "128GB", 600, "img: not found", "iph785", 20);
-//const product2 = new Product("iPhone 12 Pro Max", "256GB", 900, "img: not found", "iph789", 180);
-//const product3 = new Product("iPhone 13 Pro Max", "128GB", 1000, "img: not found", "iph435", 100);
-//const product4 = new Product("iPhone 14 Pro Max", "512GB", 1400, "img: not found", "iph567", 200);
-
-// Definimos función de testing.
-
-const test = async() => {
-    //Creamos archivo JSON.
+const test = async ()=>{
     await fs.writeFile(ruta, "[]");
-
-    // Listamos array de productos, que debería estar vacío.
-
-    await productManager.getProducts(); 
-    // Agregamos los productos.
-
-    await productManager.addProduct(product1);
-    await productManager.addProduct(product2);
-    await productManager.addProduct(product3);
-    await productManager.addProduct(product4);
-
-    // Listamos nuevamente el array de productos, ahora con los mismos cargados.
-    await productManager.getProducts(); 
-
-    // Buscamos dos productos por ID. Uno está presente; el otro no.
-    await productManager.getProductById(2);
-    await productManager.getProductById(5);
-
-    // Actualizamos una o varias propiedades de un producto.
-   /*  await productManager.updateProduct(1, "stock", 10);
-    await productManager.updateProduct(1, "price", 110000); */
-
-    // Listamos nuevamente los productos.
-    await productManager.getProducts();
-
-    // Eliminamos un producto.
-    await productManager.deleteProduct(4);
-    
-    // Listamos nuevamente los productos.
-    await productManager.getProducts();
+    await manager.addProduct(product1)
+    await manager.addProduct(product2)
+    await manager.addProduct(product3)
+    await manager.addProduct(product4)
 
 }
+
 
 export default ProductManager 

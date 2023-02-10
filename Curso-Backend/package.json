@@ -4,13 +4,14 @@
   "type": "module",
   "main": "App.js",
   "scripts": {
-    "start": "nodemon src/App.js"
+    "start": "nodemon src/app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
