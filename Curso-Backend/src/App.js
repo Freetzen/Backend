@@ -1,6 +1,6 @@
 import express from 'express'
 import routerProduct from './routes/products.routes.js';
-import cartProducts from './routes/carts.routes.js';
+import routerCart from "./routes/carts.routes.js";
 import { __dirname } from './path.js';
 import multer from 'multer'
 
@@ -26,7 +26,7 @@ app.use(express.urlencoded({extended:true})); //Permite trabajar con url extendi
 
 app.use('/static', express.static(__dirname + '/public')) //Definir carpeta publica.
 app.use('/api/products', routerProduct) //Crear ruta para productos, llamando a routerProduct
-app.use('/api/cart', cartProducts)
+app.use('/api/carts', routerCart) //Crear ruta para productos, llamando a routerCart
 
 app.post('/upload',upload.single('product'),(req,res)=>{ //Ruta para cargar un solo archivo con .single
     console.log(req.body)
